@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/user"
 	"runtime"
 	"strings"
 	"syscall"
@@ -49,12 +50,14 @@ var commandList = cli.Command{
     ('--exact') forces the match to be an exact one (i.e. the query equals to
     _project_ or _user_/_project_) If '-p' ('--full-path') is given, the full paths
     to the repository root are printed instead of relative ones.
+		if '-s' is given ,homepath convert '~'.
 `,
 	Action: doList,
 	Flags: []cli.Flag{
 		cli.BoolFlag{"exact, e", "Perform an exact match"},
 		cli.BoolFlag{"full-path, p", "Print full paths"},
 		cli.BoolFlag{"unique", "Print unique subpaths"},
+		cli.BoolFlag{"home, s", "homepath convert '~' "},
 	},
 }
 
@@ -220,6 +223,7 @@ func doList(c *cli.Context) {
 	exact := c.Bool("exact")
 	printFullPaths := c.Bool("full-path")
 	printUniquePaths := c.Bool("unique")
+	printChangeHomePaths := c.Bool("home")
 
 	var filterFn func(*LocalRepository) bool
 	if query == "" {
@@ -273,6 +277,17 @@ func doList(c *cli.Context) {
 				}
 			}
 		}
+	} else if printChangeHomePaths {
+
+		usr, err := user.Current()
+		if err != nil {
+			utils.Log("error", fmt.Sprintf("can't get path info"))
+		}
+
+		for _, repo := range repos {
+			fmt.Println(strings.Replace(repo.FullPath, usr.HomeDir, "~", 1))
+		}
+
 	} else {
 		for _, repo := range repos {
 			if printFullPaths {
